@@ -1,0 +1,26 @@
+#!/usr/bin/python3
+
+import DNS
+
+from rkn import RKNDump
+#from ipset import IPSet
+from iproute2 import IPRoute2
+
+import settings
+
+def main():
+    dump = RKNDump(settings.dumpurl)
+    #dump.stateSave()
+
+    for name in settings.add_to_list:
+        dump.ipbase |= set(DNS.dnslookup(name, "A"))
+
+#    ips = IPSet(settings.ipset)
+    ips = IPRoute2(settings.scope, settings.target)
+
+    to_add, to_rm = dump.diff(ips.addresses)
+
+    ips.change(to_add, to_rm)
+
+if __name__ == "__main__":
+    main()
