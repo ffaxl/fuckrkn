@@ -1,9 +1,12 @@
 from datetime import datetime
 import pickle
 import urllib.request
+import ipaddress
+import dns.resolver
 
 class RKNDump(object):
   ipbase = set()
+  names = set()
   updated = None
   content = ''
   _statefname = "rkn.state"
@@ -33,12 +36,32 @@ class RKNDump(object):
     updated = updated.split(' ', 1)[1]
     self.updated = datetime.strptime(updated, "%Y-%m-%d %H:%M:%S %z")
 
-    content = []
+    self.ipbase.clear()
+    self.names.clear()
     for l in dump.split('\n'):
       if l == '':
         continue
-      content.extend(l.split(';')[0].split(' | '))
-    self.ipbase = set(content)
+      (ips, name, tmp) = l.split(';', 2)
+      try:
+        ip = ipaddress.IPv4Address(ips.split(' | ', 1)[0])
+      except ipaddress.AddressValueError:
+        self.names.add(ips)
+#        print("%s isn't an ip address, resolve as domain name" % ips)
+      else:
+        self.ipbase |= set(ips.split(' | '))
+      if name == '':
+        continue
+      self.names.add(name)
+    for name in self.names:
+      try:
+        resolved = dns.resolver.query(name, "a")
+      except (dns.resolver.NoAnswer, dns.resolver.NoNameservers, dns.resolver.NXDOMAIN):
+#        print("Unresolved: %s" % name)
+        pass
+      else:
+        ips = [ip.to_text() for ip in resolved]
+#        print("Resolved %s to %s" % (name, ','.join(ips)))
+        self.ipbase |= set(ips)
 
   def diff(self, old):
     s1 = set(old)

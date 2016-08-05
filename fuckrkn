@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import DNS
+import dns.resolver
 
 from rkn import RKNDump
 #from ipset import IPSet
@@ -13,7 +13,8 @@ def main():
     #dump.stateSave()
 
     for name in settings.add_to_list:
-        dump.ipbase |= set(DNS.dnslookup(name, "A"))
+        dump.ipbase |= set([i.to_text() for i in dns.resolver.query(name, 'a')])
+    dump.ipbase -= set(settings.rm_from_list)
 
 #    ips = IPSet(settings.ipset)
     ips = IPRoute2(settings.scope, settings.target)
