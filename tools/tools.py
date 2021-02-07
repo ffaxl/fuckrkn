@@ -1,10 +1,5 @@
-import time
 import ipaddress
 import dns.resolver
-
-
-def gettime():
-    return time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + " %s" % time.tzname[0]
 
 
 def get_af(ip):

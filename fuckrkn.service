@@ -1,0 +1,11 @@
+[Unit]
+Description=RKN blacklist parsing
+
+[Service]
+Type=simple
+ExecStart=/opt/fuckrkn/fuckrkn
+Restart=always
+RestartSec=3600
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,7 @@
 import subprocess
 import shlex
 
-from tools import gettime, get_af
+from tools import get_af
 
 
 class IPRoute2(object):
@@ -37,9 +37,9 @@ class IPRoute2(object):
         target = self.target6
       r = subprocess.run(['/sbin/ip', 'route', 'add', ip] + shlex.split(target) + ['proto', self.proto], stderr=subprocess.PIPE)
       if r.returncode == 0:
-        print("%s: %s added" % (gettime(), ip))
+        print("%s added" % ip)
       else:
-        print("%s: %s add failed: %s" % (gettime(), ip, r.stderr.decode('utf8')))
+        print("%s add failed: %s" % ip, r.stderr.decode('utf8'))
 
   def route_del(self, ip):
       try:
@@ -54,9 +54,9 @@ class IPRoute2(object):
         target = self.target6
       r = subprocess.run(['/sbin/ip', 'route', 'del', ip, 'proto', self.proto], stderr=subprocess.PIPE)
       if r.returncode == 0:
-        print("%s: %s removed" % (gettime(), ip))
+        print("%s removed" % ip)
       else:
-        print("%s: %s remove failed: %s" % (gettime(), ip, r.stderr.decode('utf8')))
+        print("%s remove failed: %s" % ip, r.stderr.decode('utf8'))
 
 
   def change(self, to_add, to_del):
