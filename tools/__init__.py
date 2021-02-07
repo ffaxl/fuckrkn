@@ -1,1 +1,1 @@
-from .tools import get_af, gettime, dns_resolve
+from .tools import get_af, dns_resolve
