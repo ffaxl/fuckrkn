@@ -3,8 +3,8 @@
 import dns.resolver
 
 from rkn import RKNDump
-#from ipset import IPSet
 from iproute2 import IPRoute2
+from tools import get_af
 
 import settings
 
@@ -12,12 +12,17 @@ def main():
     dump = RKNDump(settings.dumpurl)
     #dump.stateSave()
 
-    for name in settings.add_to_list:
+    for addr in settings.add_to_list:
+      try:
+        af = get_af(addr)
+      except ValueError as e:
         dump.ipbase |= set([i.to_text() for i in dns.resolver.query(name, 'a')])
+      else:
+        dump.ipbase |= set([addr])
+
     dump.ipbase -= set(settings.rm_from_list)
 
-#    ips = IPSet(settings.ipset)
-    ips = IPRoute2(settings.scope, settings.target)
+    ips = IPRoute2(settings.scope, settings.target4, settings.target6)
 
     to_add, to_rm = dump.diff(ips.addresses)
 

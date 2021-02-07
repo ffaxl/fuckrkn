@@ -1,36 +1,67 @@
-import time
 import subprocess
 import shlex
 
-def gettime():
-    return time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + " %s" % time.tzname[0]
+from tools import gettime, get_af
+
 
 class IPRoute2(object):
 
-  def __init__(self, scope, target):
-    self.scope = scope
-    self.target = target
+  def __init__(self, proto, target4, target6):
+    self.proto = proto
+    self.target4 = target4
+    self.target6 = target6
     self.read()
 
 
   def read(self):
     self.addresses = set()
-    with subprocess.Popen(['/sbin/ip', 'route', 'list', 'scope', self.scope], stdout=subprocess.PIPE) as proc:
+    with subprocess.Popen(['/sbin/ip', 'route', 'list', 'proto', self.proto], stdout=subprocess.PIPE) as proc:
+      for l in proc.stdout:
+        self.addresses.add(l.decode("utf-8").split(' ', 1)[0])
+
+    with subprocess.Popen(['/sbin/ip', '-6', 'route', 'list', 'proto', self.proto], stdout=subprocess.PIPE) as proc:
       for l in proc.stdout:
         self.addresses.add(l.decode("utf-8").split(' ', 1)[0])
 
 
-  def change(self, to_add, to_rm):
-    for ip in to_rm:
-      r = subprocess.run(['/sbin/ip', 'route', 'del', ip, 'scope', self.scope], stderr=subprocess.PIPE)
-      if r.returncode == 0:
-        print("%s: %s removed" % (gettime(), ip))
+  def route_add(self, ip):
+      try:
+        af = get_af(ip)
+      except ValueError as e:
+        print(e)
+        return
+
+      if af == 4:
+        target = self.target4
       else:
-        print("%s: remove failed: %s" % (gettime(), r.stderr.decode('utf8')))
-    for ip in to_add:
-      r = subprocess.run(['/sbin/ip', 'route', 'add', ip] + shlex.split(self.target) + ['scope', self.scope], stderr=subprocess.PIPE)
+        target = self.target6
+      r = subprocess.run(['/sbin/ip', 'route', 'add', ip] + shlex.split(target) + ['proto', self.proto], stderr=subprocess.PIPE)
       if r.returncode == 0:
         print("%s: %s added" % (gettime(), ip))
       else:
-        print("%s: add failed: %s" % (gettime(), r.stderr.decode('utf8')))
+        print("%s: %s add failed: %s" % (gettime(), ip, r.stderr.decode('utf8')))
+
+  def route_del(self, ip):
+      try:
+        af = get_af(ip)
+      except ValueError as e:
+        print(e)
+        return
+
+      if af == 4:
+        target = self.target4
+      else:
+        target = self.target6
+      r = subprocess.run(['/sbin/ip', 'route', 'del', ip, 'proto', self.proto], stderr=subprocess.PIPE)
+      if r.returncode == 0:
+        print("%s: %s removed" % (gettime(), ip))
+      else:
+        print("%s: %s remove failed: %s" % (gettime(), ip, r.stderr.decode('utf8')))
+
+
+  def change(self, to_add, to_del):
+    for ip in to_del:
+        self.route_del(ip)
+    for ip in to_add:
+        self.route_add(ip)
     subprocess.run(['/sbin/ip', 'route', 'flush', 'cache'])

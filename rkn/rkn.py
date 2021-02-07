@@ -1,8 +1,10 @@
 from datetime import datetime
+from multiprocessing.dummy import Pool as ThreadPool
 import pickle
 import urllib.request
-import ipaddress
-import dns.resolver
+
+from tools import dns_resolve, get_af
+
 
 class RKNDump(object):
   ipbase = set()
@@ -42,26 +44,26 @@ class RKNDump(object):
       if l == '':
         continue
       (ips, name, tmp) = l.split(';', 2)
-      try:
-        ip = ipaddress.IPv4Address(ips.split(' | ', 1)[0])
-      except ipaddress.AddressValueError:
-        self.names.add(ips)
-#        print("%s isn't an ip address, resolve as domain name" % ips)
-      else:
-        self.ipbase |= set(ips.split(' | '))
+      for ipstr in ips.split(' | '):
+        if ipstr == '':
+          continue
+        try:
+          af = get_af(ipstr)
+        except ValueError:
+          self.names.add(ips)
+          print("%s isn't an ip address, resolve as domain name" % ips)
+        else:
+          self.ipbase |= set([ipstr])
+
       if name == '':
         continue
       self.names.add(name)
-    for name in self.names:
-      try:
-        resolved = dns.resolver.query(name, "a")
-      except (dns.resolver.NoAnswer, dns.resolver.NoNameservers, dns.resolver.NXDOMAIN):
-#        print("Unresolved: %s" % name)
-        pass
-      else:
-        ips = [ip.to_text() for ip in resolved]
-#        print("Resolved %s to %s" % (name, ','.join(ips)))
-        self.ipbase |= set(ips)
+
+    pool = ThreadPool(200)
+    for ips in pool.map(dns_resolve, self.names):
+      self.ipbase |= set(ips)
+    pool.close()
+    pool.join()
 
   def diff(self, old):
     s1 = set(old)
