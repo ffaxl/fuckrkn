@@ -11,9 +11,11 @@ class RKNDump(object):
   names = set()
   updated = None
   content = ''
+  resolve_threads = 0
   _statefname = "rkn.state"
 
-  def __init__(self, url = None):
+  def __init__(self, url = None, resolve_threads = 10):
+    self.resolve_threads = resolve_threads
     if url:
       response = urllib.request.urlopen(url)
       content = response.read().decode('cp1251')
@@ -59,7 +61,7 @@ class RKNDump(object):
         continue
       self.names.add(name)
 
-    pool = ThreadPool(200)
+    pool = ThreadPool(self.resolve_threads)
     for ips in pool.map(dns_resolve, self.names):
       self.ipbase |= set(ips)
     pool.close()

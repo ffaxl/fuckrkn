@@ -10,6 +10,8 @@ target4 = "dev fuckrkn"
 # target6
 target6 = "dev fuckrkn"
 
+resolve_threads = 200
+
 add_to_list = []
 
 rm_from_list = ["127.0.0.1"]

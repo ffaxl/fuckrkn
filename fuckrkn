@@ -9,7 +9,7 @@ from tools import get_af
 import settings
 
 def main():
-    dump = RKNDump(settings.dumpurl)
+    dump = RKNDump(settings.dumpurl, settings.resolve_threads)
     #dump.stateSave()
 
     for addr in settings.add_to_list:
